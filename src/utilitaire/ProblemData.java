@@ -1,5 +1,6 @@
 package utilitaire;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProblemData {
@@ -26,5 +27,12 @@ public class ProblemData {
 
     public InteractionMatrix getInteractions() {
         return interactions;
+    }
+
+    // copie triée du csv
+    public List<Parcelle> getParcellesSortedByNeighbors() {
+        List<Parcelle> copy = new ArrayList<>(parcelles); // copie de la liste
+        copy.sort((p1, p2) -> Integer.compare(p2.getVoisins().size(), p1.getVoisins().size())); // décroissant
+        return copy;
     }
 }

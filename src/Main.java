@@ -2,10 +2,10 @@ import solver.BranchAndBoundSolver;
 import solver.Solution;
 import utilitaire.*;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.List;
-
 
 public class Main {
 
@@ -57,7 +57,7 @@ public class Main {
         return (int)budgetMinimal;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
 
         ProblemData data = DataLoader.loadProblem();
         int budget = 400;

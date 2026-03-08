@@ -18,30 +18,34 @@ public class BranchAndBoundSolver {
 
     public Solution solve() {
 
+        // récupérer la copie triée (ne touche pas au CSV)
+        List<Parcelle> parcellesTriees = data.getParcellesSortedByNeighbors();
+
         Node root = new Node(new HashMap<>(), 1, 0, 0);
 
-        explore(root);
+        explore(root, parcellesTriees);
 
         return bestSolution;
     }
 
-    private void explore(Node node) {
+    private void explore(Node node, List<Parcelle> parcelles) {
 
-        if (node.getNextParcel() > data.getParcelles().size()) {
-
+        if (node.getNextParcel() > parcelles.size()) {
             if (bestSolution == null || node.getCurrentProfit() > bestSolution.getProfit()) {
                 bestSolution = new Solution(node.getAssignment(), node.getCurrentProfit());
             }
             return;
         }
 
-        Parcelle p = data.getParcelles().get(node.getNextParcel() - 1);
+        Parcelle p = parcelles.get(node.getNextParcel() - 1);
 
-        for (Culture c : data.getCultures()) {
+        // trier les cultures par bénéfice décroissant
+        List<Culture> cultures = new ArrayList<>(data.getCultures());
+        cultures.sort((c1, c2) -> Double.compare(c2.getBeneficeHa(), c1.getBeneficeHa()));
 
+        for (Culture c : cultures) {
             double cost = node.getCurrentCost() + p.getSurface() * c.getCoutHa();
 
-            // Couper la branche si budget dépassé
             if (cost > budget) {
                 System.out.println("Branch coupée : Parcelle " + p.getId() +
                         " avec culture " + c.getNom() +
@@ -64,7 +68,7 @@ public class BranchAndBoundSolver {
                 }
             }
 
-            // Calcul de la borne supérieure
+            // borne
             double bound = Heuristic.estimateUpperBound(new Node(newAssign, node.getNextParcel() + 1, profit, cost), data);
 
             if (bestSolution != null && bound <= bestSolution.getProfit()) {
@@ -82,7 +86,8 @@ public class BranchAndBoundSolver {
                     " | profit=" + profit +
                     " | coût=" + cost);
 
-            explore(child);
+            // récursion
+            explore(child, parcelles);
         }
     }
 }
