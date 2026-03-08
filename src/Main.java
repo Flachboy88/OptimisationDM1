@@ -57,6 +57,7 @@ public class Main {
         return (int)budgetMinimal;
     }
 
+
     public static void main(String[] args) throws FileNotFoundException {
 
         ProblemData data = DataLoader.loadProblem();
