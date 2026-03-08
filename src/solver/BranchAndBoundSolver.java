@@ -76,7 +76,7 @@ public class BranchAndBoundSolver {
             Node child = new Node(newAssign, node.getNextParcel() + 1, profitReel, cost);
             System.out.println("Développement : Parcelle " + p.getId() +
                     " assignée à " + c.getNom() +
-                    " | profit=" + profitReel +    // <-- profit partiel affiché
+                    " | profit=" + profitReel +
                     " | coût=" + cost);
 
             // récursion
@@ -86,17 +86,29 @@ public class BranchAndBoundSolver {
 
     private double calculerProfitTotal(Map<Integer, String> assignment, List<Parcelle> parcelles) {
         double total = 0;
+
         for (Parcelle p : parcelles) {
-            String c = assignment.get(p.getId());
-            if (c == null) continue; // parcelle pas encore assignée
-            double base = p.getSurface() * data.getCultures().stream()
-                    .filter(cu -> cu.getNom().equals(c)).findFirst().orElseThrow().getBeneficeHa();
-            double facteur = 1.0;
+            String cultureCentraleNom = assignment.get(p.getId());
+            if (cultureCentraleNom == null) continue;
+
+            // Récupérer la culture centrale
+            Culture cultureCentrale = data.getCultures().stream()
+                    .filter(c -> c.getNom().equals(cultureCentraleNom))
+                    .findFirst().get();
+
+            double profitParcelle = p.getSurface() * cultureCentrale.getBeneficeHa();
+
+            // Appliquer l'influence de TOUS les voisins assignés
+            double facteurVoisinage = 1.0;
             for (int voisinId : p.getVoisins()) {
-                String cv = assignment.get(voisinId);
-                if (cv != null) facteur *= data.getInteractions().getEffet(cv, c);
+                String cultureVoisineNom = assignment.get(voisinId);
+                if (cultureVoisineNom != null) {
+                    // IMPORTANT : c'est la culture voisine qui impacte la culture centrale
+                    facteurVoisinage *= data.getInteractions().getEffet(cultureVoisineNom, cultureCentraleNom);
+                }
             }
-            total += base * facteur;
+
+            total += (profitParcelle * facteurVoisinage);
         }
         return total;
     }
