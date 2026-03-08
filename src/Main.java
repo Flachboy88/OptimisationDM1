@@ -60,7 +60,7 @@ public class Main {
     public static void main(String[] args) throws FileNotFoundException {
 
         ProblemData data = DataLoader.loadProblem();
-        int budget = 400;
+        int budget = 500;
         afficherProbleme(data);
         int budgetMinimal = calculerBudgetMinimale(data); // avec nos données ca fait 350
         if (budget < budgetMinimal) {

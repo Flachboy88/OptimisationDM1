@@ -31,8 +31,10 @@ public class BranchAndBoundSolver {
     private void explore(Node node, List<Parcelle> parcelles) {
 
         if (node.getNextParcel() > parcelles.size()) {
-            if (bestSolution == null || node.getCurrentProfit() > bestSolution.getProfit()) {
-                bestSolution = new Solution(node.getAssignment(), node.getCurrentProfit());
+            double profitReel = calculerProfitTotal(node.getAssignment(), parcelles);
+            if (bestSolution == null || profitReel > bestSolution.getProfit()) {
+                bestSolution = new Solution(node.getAssignment(), profitReel);
+                System.out.println("Nouvelle meilleure solution : profit=" + profitReel);
             }
             return;
         }
@@ -57,37 +59,45 @@ public class BranchAndBoundSolver {
             Map<Integer, String> newAssign = new HashMap<>(node.getAssignment());
             newAssign.put(p.getId(), c.getNom());
 
-            double profit = node.getCurrentProfit() + p.getSurface() * c.getBeneficeHa();
+            double profitReel = calculerProfitTotal(newAssign, parcelles);
+            double bound = Heuristic.estimateUpperBound(
+                    new Node(newAssign, node.getNextParcel() + 1, profitReel, cost), data, budget, parcelles);
 
-            // interactions avec voisins déjà assignés
-            for (int voisinId : p.getVoisins()) {
-                String cultureVoisin = node.getAssignment().get(voisinId);
-                if (cultureVoisin != null) {
-                    double facteur = data.getInteractions().getEffet(cultureVoisin, c.getNom());
-                    profit += p.getSurface() * c.getBeneficeHa() * (facteur - 1);
-                }
-            }
-
-            // borne
-            double bound = Heuristic.estimateUpperBound(new Node(newAssign, node.getNextParcel() + 1, profit, cost), data);
 
             if (bestSolution != null && bound <= bestSolution.getProfit()) {
                 System.out.println("Branch coupée (borne trop faible) : Parcelle " + p.getId() +
                         " avec culture " + c.getNom() +
-                        " | profit courant=" + profit +
+                        " | profit courant=" + profitReel  +
                         " | borne=" + bound +
                         " | meilleur trouvé=" + bestSolution.getProfit());
                 continue;
             }
 
-            Node child = new Node(newAssign, node.getNextParcel() + 1, profit, cost);
+            Node child = new Node(newAssign, node.getNextParcel() + 1, profitReel, cost);
             System.out.println("Développement : Parcelle " + p.getId() +
                     " assignée à " + c.getNom() +
-                    " | profit=" + profit +
+                    " | profit=" + profitReel +    // <-- profit partiel affiché
                     " | coût=" + cost);
 
             // récursion
             explore(child, parcelles);
         }
+    }
+
+    private double calculerProfitTotal(Map<Integer, String> assignment, List<Parcelle> parcelles) {
+        double total = 0;
+        for (Parcelle p : parcelles) {
+            String c = assignment.get(p.getId());
+            if (c == null) continue; // parcelle pas encore assignée
+            double base = p.getSurface() * data.getCultures().stream()
+                    .filter(cu -> cu.getNom().equals(c)).findFirst().orElseThrow().getBeneficeHa();
+            double facteur = 1.0;
+            for (int voisinId : p.getVoisins()) {
+                String cv = assignment.get(voisinId);
+                if (cv != null) facteur *= data.getInteractions().getEffet(cv, c);
+            }
+            total += base * facteur;
+        }
+        return total;
     }
 }
