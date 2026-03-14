@@ -6,13 +6,16 @@ import java.util.Map;
 
 public class Heuristic {
 
+    // calcule une borne supérieure optimiste du profit total atteignable depuis ce nœud
+    // pour les voisins non encore assignés, on suppose le meilleur facteur possible (1.5, soit E->D)
+    // cela garantit que la borne est toujours >= au vrai optimum, donc on ne coupe jamais une bonne branche
     public static double estimateUpperBound(Node node, ProblemData data, double budget, List<Parcelle> parcelles) {
         double bound = 0;
         Map<Integer, String> currentAssignment = node.getAssignment();
         double budgetRestant = budget - node.getCurrentCost();
 
-        // 1. On recalcule le profit des parcelles DÉJÀ FIXÉES
-        // Mais en étant optimiste sur leurs voisins non encore assignés
+        // recalcul optimiste des parcelles déjà fixées :
+        // leurs voisins non encore assignés sont supposés avoir le meilleur effet possible
         for (Map.Entry<Integer, String> entry : currentAssignment.entrySet()) {
             int pId = entry.getKey();
             String cultNom = entry.getValue();
@@ -25,23 +28,23 @@ public class Heuristic {
 
             for (int voisinId : p.getVoisins()) {
                 if (currentAssignment.containsKey(voisinId)) {
-                    // Voisin déjà là : on prend le vrai coefficient
+                    // voisin déjà assigné : on prend le vrai facteur
                     multiplicateurOptimiste *= data.getInteractions().getEffet(currentAssignment.get(voisinId), cultNom);
                 } else {
-                    // Voisin pas encore là : on suppose le meilleur bonus possible (1.5 pour E->D)
+                    // voisin pas encore assigné : on suppose le meilleur bonus possible (1.5)
                     multiplicateurOptimiste *= 1.5;
                 }
             }
             bound += (profitBase * multiplicateurOptimiste);
         }
 
-        // 2. On estime le profit des parcelles RESTANTES (non assignées)
+        // estimation optimiste des parcelles restantes (non encore assignées)
         for (Parcelle p : parcelles) {
             if (currentAssignment.containsKey(p.getId())) continue;
 
+            // on prend la culture qui maximise le profit potentiel de cette parcelle
             double maxProfitP = 0;
             for (Culture c : data.getCultures()) {
-                // On vérifie si on a encore assez de budget théorique
                 if (p.getSurface() * c.getCoutHa() > budgetRestant) continue;
 
                 double multiP = 1.0;
@@ -49,7 +52,7 @@ public class Heuristic {
                     if (currentAssignment.containsKey(vId)) {
                         multiP *= data.getInteractions().getEffet(currentAssignment.get(vId), c.getNom());
                     } else {
-                        multiP *= 1.5; // On est très optimiste
+                        multiP *= 1.5; // voisin inconnu : on est optimiste
                     }
                 }
 
